@@ -35,6 +35,9 @@ export const PLAYER_CONFIG = {
   /** 충돌 원 반경 (픽셀) */
   collisionRadius: 8,
 
+  /** 시야 반경 (타일, 체비셰프) — 주변이 EXPLORED로 자동 공개됨 */
+  visionRadiusTiles: 4,
+
   /** 스프라이트 — 단계 2~3은 프리미티브, 단계 4에서 Kenney 스프라이트로 교체 */
   sprite: {
     width: 16,

@@ -16,10 +16,10 @@ import { BUILDING_CONFIG, MAP_CONFIG, COMBAT_CONFIG } from '../config';
 import { BuildingType, type BuildingState } from '../types';
 
 export const BUILDING_COLORS: Record<BuildingType, number> = {
-  [BuildingType.RESEARCH_LAB]: 0x8855cc,
-  [BuildingType.SPIRIT_FOREST]: 0x228b22,
   [BuildingType.WALL]: 0x888888,
   [BuildingType.BASIC_TURRET]: 0xff8800,
+  [BuildingType.LUMBER_MILL]: 0x8b5a2b, // 갈색 (나무)
+  [BuildingType.QUARRY]: 0xbbbbbb, // 밝은 회색 (돌)
 };
 
 let nextBuildingId = 1;

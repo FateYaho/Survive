@@ -12,10 +12,11 @@
  */
 
 import Phaser from 'phaser';
-import { RESOURCE_CONFIG } from '../config';
-import { PhaseType, ResourceType, TileState, type Tile } from '../types';
+import { RESOURCE_CONFIG, getExpansionCost } from '../config';
+import { PhaseType, TileState, type Tile } from '../types';
 import type { TileMap } from './tile-map';
 import type { Player } from '../entities/player';
+import type { PlacementMode } from './placement-mode';
 
 export class ResourceSystem {
   private readonly scene: Phaser.Scene;
@@ -26,6 +27,10 @@ export class ResourceSystem {
   private collectingTile: Tile | null = null;
   private collectTimerMs: number = 0;
   private currentPhase: PhaseType = PhaseType.DAY;
+  /** 플레이어가 지금까지 확장한 타일 개수 (초기 영토 제외) — 확장 비용 스케일링 */
+  private expansionsDone: number = 0;
+  /** PlacementMode가 활성이면 클릭은 건물 배치로 전용. setter로 지연 주입 */
+  private placementMode: PlacementMode | null = null;
 
   constructor(scene: Phaser.Scene, tileMap: TileMap, player: Player) {
     this.scene = scene;
@@ -88,9 +93,11 @@ export class ResourceSystem {
     this.collectTimerMs += delta;
     const needed = RESOURCE_CONFIG.collectTimeMs[tile.resource];
     if (this.collectTimerMs >= needed) {
-      const amount = RESOURCE_CONFIG.collectAmount[tile.resource];
+      // 자원 타입은 decrement 호출 전에 캡처 (고갈 시 tile.resource가 null 되어 손실됨 — 버그 방지)
+      const resourceType = tile.resource;
+      const amount = RESOURCE_CONFIG.collectAmount[resourceType];
       const taken = this.tileMap.decrementResource(tile, amount);
-      if (taken > 0) this.player.addResource(tile.resource ?? tile.resource!, taken);
+      if (taken > 0) this.player.addResource(resourceType, taken);
       this.collectTimerMs = 0;
       // 고갈되면 타일 리셋 (resource가 null이 됨) → 다음 update에서 cancelCollection
     }
@@ -114,11 +121,16 @@ export class ResourceSystem {
     };
   }
 
-  /** 클릭 → 확장 시도 (DAY 페이즈만). UI 영역 클릭은 스킵. */
+  /** 클릭 → 확장 시도. UI/배치 모드 활성 시 스킵. NIGHT는 금지. */
   private handleClick(pointer: Phaser.Input.Pointer): void {
-    if (this.currentPhase !== PhaseType.DAY) return;
-    // 상단 UI zone (PhaseTimer/DevSkipButton) / 하단 UI zone (ReadyButton)
+    if (this.currentPhase === PhaseType.NIGHT) return;
+    // 배치 모드 활성이면 클릭은 건물 배치 전용
+    if (this.placementMode?.isActive()) return;
+    // 상단 UI zone (PhaseTimer/DevSkipButton)
     if (pointer.y < 48) return;
+    // 하단 UI zone (BuildMenu / ReadyButton)
+    const h = this.scene.game.canvas.height;
+    if (pointer.y > h - 140) return;
     const { tileX, tileY } = this.tileMap.pixelToTile(
       pointer.worldX,
       pointer.worldY
@@ -132,14 +144,22 @@ export class ResourceSystem {
     // 인접 4방향에 OWNED 있어야 함 (대각선 불가)
     if (!this.tileMap.hasOwnedAdjacent(tileX, tileY)) return;
 
-    const cost: Partial<Record<ResourceType, number>> = {
-      [ResourceType.WOOD]: RESOURCE_CONFIG.expansionCost.WOOD,
-      [ResourceType.STONE]: RESOURCE_CONFIG.expansionCost.STONE,
-    };
+    const cost = getExpansionCost(this.expansionsDone);
     const paid = this.player.trySpend(cost);
     if (!paid) return;
 
+    this.expansionsDone++;
     this.tileMap.setTileState(tileX, tileY, TileState.OWNED);
     this.scene.events.emit('tile:unlocked', { tileX, tileY, cost });
+  }
+
+  /** 다음 확장 비용 (UI 노출용) */
+  getNextExpansionCost(): ReturnType<typeof getExpansionCost> {
+    return getExpansionCost(this.expansionsDone);
+  }
+
+  /** GameScene에서 PlacementMode 생성 후 주입 (순환 의존 회피) */
+  setPlacementMode(pm: PlacementMode): void {
+    this.placementMode = pm;
   }
 }

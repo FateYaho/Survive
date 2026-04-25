@@ -8,3 +8,4 @@ export * from './core';
 export * from './monster';
 export * from './building';
 export * from './turret';
+export * from './production-building';

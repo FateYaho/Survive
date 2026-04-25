@@ -1,20 +1,22 @@
 /**
- * PhaseManager — 낮/밤/빌드 페이즈 루프
+ * PhaseManager — 낮/빌드/밤 페이즈 루프
  *
  * 관련 문서:
  * - GDD §8 (페이즈 구조), §15.1 (시간 구조)
- * - IMPL_PLAN §2.4, 단계 4 (티켓 4.2, 4.5)
+ * - IMPL_PLAN §2.4, 단계 4·8
  *
  * 전이:
- *   DAY(90s) → NIGHT(60s) → BUILD(무제한) → DAY(cycle+1) ...
+ *   DAY(90s) → BUILD(무제한, 준비 버튼) → NIGHT(60s) → DAY(cycle+1) ...
+ *   NIGHT 종료 시 cycle ≥ maxCycles면 game:won.
+ *   core 파괴 시 어느 페이즈에서든 즉시 game:lost.
  *
  * 이벤트:
  * - `phase:dayStart   { cycle }`
- * - `phase:nightStart { cycle }`
  * - `phase:buildStart { cycle }`
- * - 구독: `phase:buildEnd` (UI 버튼 → 다음 낮으로)
- *
- * Phase 1 MVP 범위: maxCycles(=5) 초과 시 승리 판정은 단계 8에서 추가.
+ * - `phase:nightStart { cycle }`
+ * - `phase:nightEnd   { cycle }` — 통계·승리 판정용
+ * - 구독: `phase:buildEnd` (UI 버튼 → 밤 시작)
+ * - 구독: `core:destroyed` → game:lost
  */
 
 import Phaser from 'phaser';
@@ -51,9 +53,9 @@ export class PhaseManager {
     if (this.state.timeLeftSeconds > 0) return;
 
     if (this.state.type === PhaseType.DAY) {
-      this.enterNight(this.state.cycle);
-    } else if (this.state.type === PhaseType.NIGHT) {
       this.enterBuild(this.state.cycle);
+    } else if (this.state.type === PhaseType.NIGHT) {
+      this.handleNightEnd();
     }
   }
 
@@ -65,11 +67,11 @@ export class PhaseManager {
   skipToNext(): void {
     if (this.ended) return;
     if (this.state.type === PhaseType.DAY) {
-      this.enterNight(this.state.cycle);
-    } else if (this.state.type === PhaseType.NIGHT) {
       this.enterBuild(this.state.cycle);
-    } else {
+    } else if (this.state.type === PhaseType.BUILD) {
       this.handleBuildEnd();
+    } else {
+      this.handleNightEnd();
     }
   }
 
@@ -82,15 +84,6 @@ export class PhaseManager {
     this.scene.events.emit('phase:dayStart', { cycle });
   }
 
-  private enterNight(cycle: number): void {
-    this.state = {
-      type: PhaseType.NIGHT,
-      timeLeftSeconds: PHASE_CONFIG.nightDurationMs / 1000,
-      cycle,
-    };
-    this.scene.events.emit('phase:nightStart', { cycle });
-  }
-
   private enterBuild(cycle: number): void {
     this.state = {
       type: PhaseType.BUILD,
@@ -100,20 +93,34 @@ export class PhaseManager {
     this.scene.events.emit('phase:buildStart', { cycle });
   }
 
+  private enterNight(cycle: number): void {
+    this.state = {
+      type: PhaseType.NIGHT,
+      timeLeftSeconds: PHASE_CONFIG.nightDurationMs / 1000,
+      cycle,
+    };
+    this.scene.events.emit('phase:nightStart', { cycle });
+  }
+
+  /** BUILD 종료(준비 버튼) → NIGHT 진입 */
   private handleBuildEnd(): void {
     if (this.ended) return;
     if (this.state.type !== PhaseType.BUILD) return;
+    this.enterNight(this.state.cycle);
+  }
 
-    // 마지막 사이클의 BUILD를 끝냈다 → 승리
-    if (this.state.cycle >= PHASE_CONFIG.maxCycles) {
+  /** NIGHT 종료 → 다음 DAY. 마지막 사이클이었으면 승리 */
+  private handleNightEnd(): void {
+    if (this.ended) return;
+    const cleared = this.state.cycle;
+    this.scene.events.emit('phase:nightEnd', { cycle: cleared });
+
+    if (cleared >= PHASE_CONFIG.maxCycles) {
       this.ended = true;
-      this.scene.events.emit('game:won', {
-        cyclesCleared: this.state.cycle,
-      });
+      this.scene.events.emit('game:won', { cyclesCleared: cleared });
       return;
     }
-
-    this.enterDay(this.state.cycle + 1);
+    this.enterDay(cleared + 1);
   }
 
   private handleCoreDestroyed(): void {

@@ -1,11 +1,13 @@
 /**
- * BuildMenu — BUILD 페이즈 전용 건물 선택 메뉴
+ * BuildMenu — DAY + BUILD 페이즈 건물 선택 메뉴
  *
  * 관련 문서:
+ * - docs/ECONOMY_CONFIG_FINAL.md (2026-04-25 재설계: DAY 중에도 건설 허용)
  * - IMPL_PLAN §7.4
  *
- * 배치: 화면 하단 (ReadyButton 위쪽). 4장 카드.
+ * 배치: 화면 하단 (ReadyButton 위쪽). 카드 4장 (벽 / 터렛 / 제재소 / 채석장).
  * 구현 주의: setInteractive hit-test 이슈로 씬 레벨 pointerdown + 좌표 수동 판정.
+ * 생산 건물(maxCount=1)은 이미 건설됐으면 카드 회색 처리.
  */
 
 import Phaser from 'phaser';
@@ -13,12 +15,11 @@ import { BUILDING_CONFIG, GAME_CONFIG } from '../config';
 import { BuildingType, ResourceType } from '../types';
 import { BUILDING_COLORS } from '../entities/building';
 import type { PlacementMode } from '../systems/placement-mode';
+import type { BuildingSystem } from '../systems/building-system';
 
 interface Card {
   type: BuildingType;
-  label: string;
   bg: Phaser.GameObjects.Rectangle;
-  border: Phaser.GameObjects.Rectangle;
   rect: { left: number; right: number; top: number; bottom: number };
 }
 
@@ -28,24 +29,30 @@ const CARD_GAP = 10;
 const BOTTOM_MARGIN = 110;
 
 const LABELS: Record<BuildingType, string> = {
-  [BuildingType.RESEARCH_LAB]: '연구실',
-  [BuildingType.SPIRIT_FOREST]: '정령의 숲',
   [BuildingType.WALL]: '벽',
   [BuildingType.BASIC_TURRET]: '터렛',
+  [BuildingType.LUMBER_MILL]: '제재소',
+  [BuildingType.QUARRY]: '채석장',
 };
 
 const ORDER: BuildingType[] = [
   BuildingType.WALL,
   BuildingType.BASIC_TURRET,
-  BuildingType.RESEARCH_LAB,
-  BuildingType.SPIRIT_FOREST,
+  BuildingType.LUMBER_MILL,
+  BuildingType.QUARRY,
 ];
 
 export class BuildMenu {
   private readonly cards: Card[] = [];
+  private readonly buildings: BuildingSystem;
   private visible = false;
 
-  constructor(scene: Phaser.Scene, placement: PlacementMode) {
+  constructor(
+    scene: Phaser.Scene,
+    placement: PlacementMode,
+    buildings: BuildingSystem
+  ) {
+    this.buildings = buildings;
     const totalW = ORDER.length * CARD_W + (ORDER.length - 1) * CARD_GAP;
     const startX = GAME_CONFIG.canvas.width / 2 - totalW / 2 + CARD_W / 2;
     const cy = GAME_CONFIG.canvas.height - BOTTOM_MARGIN;
@@ -61,7 +68,6 @@ export class BuildMenu {
         .setStrokeStyle(2, 0x555555)
         .setVisible(false);
 
-      // 건물 색상 미리보기 (작은 사각형)
       const preview = scene.add
         .rectangle(cx, cy - 18, 20, 20, BUILDING_COLORS[type])
         .setScrollFactor(0)
@@ -98,9 +104,7 @@ export class BuildMenu {
 
       const card: Card = {
         type,
-        label: LABELS[type],
         bg,
-        border: bg,
         rect: {
           left: cx - CARD_W / 2,
           right: cx + CARD_W / 2,
@@ -110,21 +114,17 @@ export class BuildMenu {
       };
       this.cards.push(card);
 
-      // 카드 children (preview, name, costText) 공개/숨김 관리
       const parts = [bg, preview, name, costText];
-      scene.events.on('phase:buildStart', () =>
-        parts.forEach((x) => x.setVisible(true))
-      );
-      scene.events.on('phase:dayStart', () =>
-        parts.forEach((x) => x.setVisible(false))
-      );
-      scene.events.on('phase:nightStart', () =>
-        parts.forEach((x) => x.setVisible(false))
-      );
+      const show = () => parts.forEach((x) => x.setVisible(true));
+      const hide = () => parts.forEach((x) => x.setVisible(false));
+      scene.events.on('phase:dayStart', show);
+      scene.events.on('phase:buildStart', show);
+      scene.events.on('phase:nightStart', hide);
     }
 
+    // 재설계: DAY + BUILD 둘 다 표시
+    scene.events.on('phase:dayStart', () => (this.visible = true));
     scene.events.on('phase:buildStart', () => (this.visible = true));
-    scene.events.on('phase:dayStart', () => (this.visible = false));
     scene.events.on('phase:nightStart', () => (this.visible = false));
 
     scene.input.on('pointermove', (p: Phaser.Input.Pointer) => {
@@ -132,22 +132,28 @@ export class BuildMenu {
       for (const c of this.cards) {
         const hovering = this.contains(c, p);
         const isActive = placement.getActiveType() === c.type;
+        const maxed = this.isMaxed(c.type);
         c.bg.setStrokeStyle(
           2,
-          isActive ? 0xffff44 : hovering ? 0x44aaff : 0x555555
+          isActive ? 0xffff44 : maxed ? 0x333333 : hovering ? 0x44aaff : 0x555555
         );
+        c.bg.setFillStyle(maxed ? 0x111111 : 0x222222, 0.9);
       }
     });
 
     scene.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
       if (!this.visible) return;
       for (const c of this.cards) {
-        if (this.contains(c, p)) {
-          placement.enter(c.type);
-          return;
-        }
+        if (!this.contains(c, p)) continue;
+        if (this.isMaxed(c.type)) return; // 이미 맥스 — 클릭 무시
+        placement.enter(c.type);
+        return;
       }
     });
+  }
+
+  private isMaxed(type: BuildingType): boolean {
+    return this.buildings.isMaxed(type);
   }
 
   private contains(c: Card, p: Phaser.Input.Pointer): boolean {

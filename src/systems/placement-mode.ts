@@ -50,7 +50,7 @@ export class PlacementMode {
     );
     esc?.on('down', () => this.exit());
 
-    scene.events.on('phase:dayStart', () => this.exit());
+    // NIGHT 진입 시만 배치 모드 자동 취소. DAY·BUILD 둘 다 건설 허용 (재설계).
     scene.events.on('phase:nightStart', () => this.exit());
   }
 

@@ -17,8 +17,8 @@ export const MAP_CONFIG = {
    * 기본 32 시작 → 화면에 30×32 = 960px, 1280×720 캔버스 여유
    */
   tileSize: 32,
-  /** 초기 공개 중앙 5×5 — GDD §4.1 */
-  initialRevealSize: 5,
+  /** 초기 공개 중앙 영역 크기 (2026-04-25 재설계: 5 → 4) */
+  initialRevealSize: 4,
 } as const satisfies MapConfig;
 
 /** 맵 전체 픽셀 크기 (파생) */

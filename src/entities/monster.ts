@@ -21,6 +21,7 @@ import {
   AttackPattern,
   MonsterType,
   MovePattern,
+  ResourceType,
   type MonsterState,
 } from '../types';
 import type { Player } from './player';
@@ -232,10 +233,47 @@ export class Monster {
   destroy(): void {
     if (this.destroyed) return;
     this.destroyed = true;
+    const pos = { pixelX: this.state.pixelX, pixelY: this.state.pixelY };
     this.sprite.destroy();
+
+    // 드롭 처리 — Phase 1: 플레이어 인벤토리에 자동 지급 + 플로팅 텍스트
+    this.applyDrop(pos);
+
     this.scene.events.emit('monster:died', {
       monsterId: this.state.id,
-      dropLocation: { pixelX: this.state.pixelX, pixelY: this.state.pixelY },
+      dropLocation: pos,
+    });
+  }
+
+  private applyDrop(pos: { pixelX: number; pixelY: number }): void {
+    const drop = MONSTER_CONFIG[this.state.type as MonsterType.WOLF].drop;
+    if (!drop) return;
+    const wood = drop.wood ?? 0;
+    const stone = drop.stone ?? 0;
+    if (wood > 0) this.player.addResource(ResourceType.WOOD, wood);
+    if (stone > 0) this.player.addResource(ResourceType.STONE, stone);
+
+    const parts: string[] = [];
+    if (wood > 0) parts.push(`+${wood}W`);
+    if (stone > 0) parts.push(`+${stone}S`);
+    if (parts.length === 0) return;
+
+    const txt = this.scene.add
+      .text(pos.pixelX, pos.pixelY, parts.join('  '), {
+        fontSize: '12px',
+        color: '#ffee66',
+        fontStyle: 'bold',
+        stroke: '#000000',
+        strokeThickness: 3,
+      })
+      .setOrigin(0.5)
+      .setDepth(25);
+    this.scene.tweens.add({
+      targets: txt,
+      y: pos.pixelY - 24,
+      alpha: 0,
+      duration: 800,
+      onComplete: () => txt.destroy(),
     });
   }
 }

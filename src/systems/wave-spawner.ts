@@ -42,7 +42,8 @@ export class WaveSpawner {
     scene.events.on('phase:nightStart', (p: { cycle: number }) =>
       this.spawnWave(p.cycle)
     );
-    scene.events.on('phase:buildStart', () => this.clearAll());
+    // 새 순서(DAY→BUILD→NIGHT→DAY) 기준, 밤 종료 시 남은 몬스터 전부 정리
+    scene.events.on('phase:nightEnd', () => this.clearAll());
   }
 
   /** BuildingSystem은 WaveSpawner 이후 생성되므로 setter 주입 (순환 의존) */

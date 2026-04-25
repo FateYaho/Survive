@@ -62,14 +62,19 @@ export class TileMap {
 
   private generateMap(): void {
     const { size, initialRevealSize } = MAP_CONFIG;
-    const half = Math.floor(initialRevealSize / 2);
+    // 짝/홀수 모두 지원: 코어가 내부에 포함되도록 중심 기준 좌측·상단으로 offset
     const { tileX: cx, tileY: cy } = MAP_CENTER;
+    const offset = Math.floor(initialRevealSize / 2);
+    const startX = cx - offset;
+    const endX = startX + initialRevealSize - 1;
+    const startY = cy - offset;
+    const endY = startY + initialRevealSize - 1;
 
     for (let y = 0; y < size; y++) {
       const row: Tile[] = [];
       for (let x = 0; x < size; x++) {
         const inReveal =
-          x >= cx - half && x <= cx + half && y >= cy - half && y <= cy + half;
+          x >= startX && x <= endX && y >= startY && y <= endY;
         row.push({
           tileX: x,
           tileY: y,
@@ -153,7 +158,7 @@ export class TileMap {
     }
   }
 
-  /** OWNED 타일의 자원만 마커(원)로 표시. FOG는 숨김 */
+  /** OWNED/EXPLORED 타일의 자원 마커 표시. FOG는 숨김 (아직 안 밝혀진 영역) */
   private redrawResourceMarkers(): void {
     const { tileSize } = MAP_CONFIG;
     const r = Math.floor(tileSize * 0.28);
@@ -161,7 +166,7 @@ export class TileMap {
 
     for (const row of this.tiles) {
       for (const tile of row) {
-        if (tile.state !== TileState.OWNED) continue;
+        if (tile.state === TileState.FOG) continue;
         if (!tile.resource || tile.resourceAmount <= 0) continue;
         const cx = tile.tileX * tileSize + tileSize / 2;
         const cy = tile.tileY * tileSize + tileSize / 2;
@@ -213,7 +218,7 @@ export class TileMap {
 
   /**
    * 채집 가능 타일 탐색 — 플레이어 위치 + 4방향
-   * OWNED + 자원 남아있음 조건
+   * OWNED 또는 EXPLORED + 자원 남아있음. FOG는 아직 안 보이므로 제외.
    */
   findCollectibleNear(tileX: number, tileY: number): Tile | null {
     const offsets: ReadonlyArray<readonly [number, number]> = [
@@ -224,7 +229,7 @@ export class TileMap {
       const t = this.getTile(tileX + dx, tileY + dy);
       if (
         t &&
-        t.state === TileState.OWNED &&
+        t.state !== TileState.FOG &&
         t.resource &&
         t.resourceAmount > 0
       ) {
@@ -232,6 +237,35 @@ export class TileMap {
       }
     }
     return null;
+  }
+
+  /**
+   * 플레이어 주변 반경(체비셰프 거리) 내 FOG 타일을 EXPLORED로 전환.
+   * 이미 EXPLORED/OWNED는 변경하지 않음.
+   */
+  revealAround(tileX: number, tileY: number, radius: number): void {
+    let changed = false;
+    for (let dy = -radius; dy <= radius; dy++) {
+      for (let dx = -radius; dx <= radius; dx++) {
+        const t = this.getTile(tileX + dx, tileY + dy);
+        if (!t || t.state !== TileState.FOG) continue;
+        t.state = TileState.EXPLORED;
+        this.paintTile(t);
+        changed = true;
+      }
+    }
+    if (changed) this.redrawResourceMarkers();
+  }
+
+  private paintTile(tile: Tile): void {
+    const { tileSize } = MAP_CONFIG;
+    this.fillGraphics.fillStyle(TILE_COLORS[tile.state], 1);
+    this.fillGraphics.fillRect(
+      tile.tileX * tileSize,
+      tile.tileY * tileSize,
+      tileSize,
+      tileSize
+    );
   }
 
   /** 상태 변경 + 이벤트 발행 + 리드로우 */

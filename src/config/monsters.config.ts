@@ -24,6 +24,8 @@ export const MONSTER_CONFIG = {
     collisionRadius: 6,
     movePattern: MovePattern.STRAIGHT,
     attackPattern: AttackPattern.MELEE,
+    /** 처치 시 드롭 — Phase 1 기준 초안 // TUNE_AFTER_PHASE1 */
+    drop: { wood: 2, stone: 1 },
   },
   // BOAR / SHADOW / GHOST는 Phase 2+에서 추가
 

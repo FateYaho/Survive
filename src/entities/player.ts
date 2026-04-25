@@ -95,6 +95,13 @@ export class Player {
 
     this.lastTileX = startTileX;
     this.lastTileY = startTileY;
+
+    // 스폰 시점 주변 공개 (초기 5×5 OWNED 너머의 EXPLORED 영역 드러냄)
+    this.tileMap.revealAround(
+      startTileX,
+      startTileY,
+      PLAYER_CONFIG.visionRadiusTiles
+    );
   }
 
   update(_time: number, delta: number): void {
@@ -135,11 +142,12 @@ export class Player {
       this.state.facing = vy < 0 ? 'up' : 'down';
     }
 
-    // 타일 경계 넘을 때만 이벤트 발행
+    // 타일 경계 넘을 때만 이벤트 발행 + 시야 반경 업데이트
     const { tileX, tileY } = this.tileMap.pixelToTile(nextX, nextY);
     if (tileX !== this.lastTileX || tileY !== this.lastTileY) {
       this.lastTileX = tileX;
       this.lastTileY = tileY;
+      this.tileMap.revealAround(tileX, tileY, PLAYER_CONFIG.visionRadiusTiles);
       this.scene.events.emit('tile:entered', { tileX, tileY });
       this.scene.events.emit('player:moved', {
         pixelX: nextX,

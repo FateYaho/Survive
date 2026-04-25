@@ -78,17 +78,19 @@ export class GameScene extends Phaser.Scene {
       this,
       this.tileMap,
       this.player,
-      this.waves
+      this.waves,
+      this.phase
     );
     this.waves.setBuildingSystem(this.buildings);
     const placement = new PlacementMode(this, this.tileMap, this.buildings);
+    this.resources.setPlacementMode(placement);
 
     new ResourceBar(this, () => this.player.getState().inventory);
     new HpBar(this, this.player, this.core);
     this.phaseTimer = new PhaseTimer(this, this.phase);
     new ReadyButton(this);
     new DevSkipButton(this, this.phase);
-    new BuildMenu(this, placement);
+    new BuildMenu(this, placement, this.buildings);
 
     this.setupCamera();
     this.setupDebug();
@@ -104,8 +106,8 @@ export class GameScene extends Phaser.Scene {
     this.events.on('monster:died', () => {
       this.stats.monstersKilled++;
     });
-    // BUILD 종료 시 cyclesCleared 증가 (사이클 N BUILD 끝나면 N cycle 완료)
-    this.events.on('phase:buildEnd', () => {
+    // NIGHT 종료 시 cyclesCleared 증가 (사이클 N NIGHT 버텨내면 N cycle 완료)
+    this.events.on('phase:nightEnd', () => {
       this.stats.cyclesCleared++;
     });
 

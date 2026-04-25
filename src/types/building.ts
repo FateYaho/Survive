@@ -8,16 +8,16 @@
 
 import type { TargetRef } from './monster';
 
-/** 건물 타입 — Phase 1 MVP 범위 */
+/** 건물 타입 — Phase 1 MVP 범위 (2026-04-25 재설계) */
 export enum BuildingType {
-  /** 연구실 — T1 테크 해금 */
-  RESEARCH_LAB = 'RESEARCH_LAB',
-  /** 정령의 숲 — 나무 T2 해금, 시설 효과 */
-  SPIRIT_FOREST = 'SPIRIT_FOREST',
   /** 벽 — 방어 장애물 */
   WALL = 'WALL',
   /** 기본 터렛 — 자동 공격 */
   BASIC_TURRET = 'BASIC_TURRET',
+  /** 제재소 — 주기적 나무 생산 (최대 1개) */
+  LUMBER_MILL = 'LUMBER_MILL',
+  /** 채석장 — 주기적 돌 생산 (최대 1개) */
+  QUARRY = 'QUARRY',
 }
 
 /** 모든 건물 공통 상태 */
