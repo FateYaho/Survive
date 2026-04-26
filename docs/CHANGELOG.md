@@ -28,6 +28,12 @@
 
 ## 2026-04-26
 
+### [REFACTOR] BuildMenu 비용 라벨을 4종 자원 일반화
+- **무엇**: `build-menu.ts`의 비용 문자열 생성을 W/S 하드코딩에서 `Object.entries(cost)` 루프로 교체. 공통 `RESOURCE_ICONS` 매핑 사용.
+- **왜**: Phase 2에서 IRON/GOLD를 비용으로 쓰는 건물(공장·마법연구소 등) 추가 시 UI에서 비용이 사일런트 누락되는 버그 회피. 자원 4종 모두 자동 반영.
+- **파일**: `src/ui/build-menu.ts:88-94`
+- **관련**: 코드 감사 발견. 현재 W/S만 쓰는 건물 4종은 표시 결과 동일 (회귀 X). typecheck 통과.
+
 ### [REFACTOR] 몬스터 drop 컨벤션을 ResourceType enum 키로 통일
 - **무엇**:
   - `MONSTER_CONFIG.WOLF.drop` 키를 소문자 `wood`/`stone` → `ResourceType.WOOD`/`ResourceType.STONE`로 교체. 타입은 `Partial<Record<ResourceType, number>>`.

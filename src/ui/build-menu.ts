@@ -11,7 +11,7 @@
  */
 
 import Phaser from 'phaser';
-import { BUILDING_CONFIG, GAME_CONFIG } from '../config';
+import { BUILDING_CONFIG, GAME_CONFIG, RESOURCE_ICONS } from '../config';
 import { BuildingType, ResourceType } from '../types';
 import { BUILDING_COLORS } from '../entities/building';
 import type { PlacementMode } from '../systems/placement-mode';
@@ -86,11 +86,9 @@ export class BuildMenu {
         .setVisible(false);
 
       const cost = BUILDING_CONFIG[type].cost as Partial<Record<ResourceType, number>>;
-      const costStr = [
-        cost[ResourceType.WOOD] ? `W ${cost[ResourceType.WOOD]}` : null,
-        cost[ResourceType.STONE] ? `S ${cost[ResourceType.STONE]}` : null,
-      ]
-        .filter(Boolean)
+      const costStr = (Object.entries(cost) as [ResourceType, number][])
+        .filter(([, v]) => v > 0)
+        .map(([t, v]) => `${RESOURCE_ICONS[t]} ${v}`)
         .join('  ');
       const costText = scene.add
         .text(cx, cy + 22, costStr, {
