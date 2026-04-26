@@ -16,7 +16,7 @@
  */
 
 import Phaser from 'phaser';
-import { COMBAT_CONFIG, MONSTER_CONFIG } from '../config';
+import { COMBAT_CONFIG, MONSTER_CONFIG, RESOURCE_ICONS } from '../config';
 import {
   AttackPattern,
   MonsterType,
@@ -83,7 +83,6 @@ export class Monster {
       maxHp: cfg.hp,
       movePattern: cfg.movePattern as MovePattern,
       attackPattern: cfg.attackPattern as AttackPattern,
-      currentTarget: null,
       moveSpeed: cfg.moveSpeed,
       attackPower: cfg.attackPower,
       attackCooldownMs: cfg.attackCooldownMs,
@@ -289,14 +288,13 @@ export class Monster {
   private applyDrop(pos: { pixelX: number; pixelY: number }): void {
     const drop = MONSTER_CONFIG[this.state.type as MonsterType.WOLF].drop;
     if (!drop) return;
-    const wood = drop.wood ?? 0;
-    const stone = drop.stone ?? 0;
-    if (wood > 0) this.player.addResource(ResourceType.WOOD, wood);
-    if (stone > 0) this.player.addResource(ResourceType.STONE, stone);
 
     const parts: string[] = [];
-    if (wood > 0) parts.push(`+${wood}W`);
-    if (stone > 0) parts.push(`+${stone}S`);
+    for (const [type, amount] of Object.entries(drop) as [ResourceType, number][]) {
+      if (!amount || amount <= 0) continue;
+      this.player.addResource(type, amount);
+      parts.push(`+${amount}${RESOURCE_ICONS[type]}`);
+    }
     if (parts.length === 0) return;
 
     const txt = this.scene.add

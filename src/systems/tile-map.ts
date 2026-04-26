@@ -90,8 +90,8 @@ export class TileMap {
 
   /**
    * 자원 타일 스폰 — IMPL_PLAN §3.2
-   * 중앙 5×5(OWNED) 제외, 밀도(15%) 기준·최소 간격 2칸
-   * Phase 1: WOOD/STONE 1:1
+   * 중앙 OWNED 제외, 밀도(15%) 기준·최소 간격 2칸
+   * Phase 2 스텝 1: WOOD/STONE/IRON/GOLD weighted random (RESOURCE_CONFIG.spawnWeights)
    */
   private spawnResources(): void {
     const { size } = MAP_CONFIG;
@@ -124,12 +124,24 @@ export class TileMap {
       picked.push(tile);
     }
 
-    for (let i = 0; i < picked.length; i++) {
-      const tile = picked[i]!;
-      tile.resource =
-        i % 2 === 0 ? ResourceType.WOOD : ResourceType.STONE;
+    for (const tile of picked) {
+      tile.resource = this.pickResourceType();
       tile.resourceAmount = RESOURCE_CONFIG.initialResourcePerTile;
     }
+  }
+
+  /** 가중치 기반 자원 종류 선택 — RESOURCE_CONFIG.spawnWeights */
+  private pickResourceType(): ResourceType {
+    const weights = RESOURCE_CONFIG.spawnWeights;
+    const entries = Object.entries(weights) as [ResourceType, number][];
+    const total = entries.reduce((sum, [, w]) => sum + w, 0);
+    let roll = Math.random() * total;
+    for (const [type, w] of entries) {
+      roll -= w;
+      if (roll < 0) return type;
+    }
+    // 부동소수 안전장치 (이론상 도달 X): 마지막 항목 반환
+    return entries[entries.length - 1]![0];
   }
 
   render(): void {

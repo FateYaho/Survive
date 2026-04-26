@@ -27,4 +27,15 @@ export const GAME_CONFIG = {
     /** 콘솔 이벤트 로그 */
     eventLog: false,
   },
+
+  /**
+   * UI 영역 클릭 차단 zone — 월드 클릭(채집·확장·건물배치)이 HUD 위에서 발화 안 되게.
+   * - topZoneHeight: 상단 PhaseTimer + DevSkipButton 영역 (y < N 무시)
+   * - bottomZoneHeight: 하단 BuildMenu + ReadyButton 영역 (y > canvas.height - N 무시)
+   * HUD 높이 변경 시 여기만 갱신하면 모든 시스템에서 동기화됨.
+   */
+  ui: {
+    topZoneHeight: 48,
+    bottomZoneHeight: 140,
+  },
 } as const;

@@ -12,7 +12,7 @@
  */
 
 import Phaser from 'phaser';
-import { RESOURCE_CONFIG, getExpansionCost } from '../config';
+import { GAME_CONFIG, RESOURCE_CONFIG, getExpansionCost } from '../config';
 import { PhaseType, TileState, type Tile } from '../types';
 import type { TileMap } from './tile-map';
 import type { Player } from '../entities/player';
@@ -127,10 +127,10 @@ export class ResourceSystem {
     // 배치 모드 활성이면 클릭은 건물 배치 전용
     if (this.placementMode?.isActive()) return;
     // 상단 UI zone (PhaseTimer/DevSkipButton)
-    if (pointer.y < 48) return;
+    if (pointer.y < GAME_CONFIG.ui.topZoneHeight) return;
     // 하단 UI zone (BuildMenu / ReadyButton)
     const h = this.scene.game.canvas.height;
-    if (pointer.y > h - 140) return;
+    if (pointer.y > h - GAME_CONFIG.ui.bottomZoneHeight) return;
     const { tileX, tileY } = this.tileMap.pixelToTile(
       pointer.worldX,
       pointer.worldY

@@ -59,12 +59,6 @@
   - 회전 가시는 update 매 프레임 빔 회전 + 적중 판정 → 몬스터·터렛 다수 시 비용 누적 가능. Phase 4 성능 측정 필요.
   - 회전 가시 빔은 시각만 직선이고 적중 판정도 line-thickness 기반. 너무 멀리 위치한 몬스터는 빔이 통과해도 미적중 가능 (radius 80 이내만).
 
-### [FIX] ResourceBar에 IRON·GOLD 표시 추가
-- **무엇**: `shown` 배열에 `ResourceType.IRON`, `ResourceType.GOLD` 추가 → HUD 4종(W/S/I/G) 표시.
-- **왜**: Phase 2 step 2에서 FORGE/FACTORY가 IRON·GOLD를 생산하지만 HUD가 W/S만 표시해 플레이어가 생산 결과를 볼 수 없는 문제. 어제 [FEATURE] 항목의 후속 검토 사항.
-- **파일**: `src/ui/resource-bar.ts:35`
-- **관련**: 2026-04-26 [FEATURE] Phase 2 step 2
-
 ---
 
 ## 2026-04-26
@@ -82,7 +76,53 @@
 - **왜**: Phase 2 진입 — 철·금 경제 부트스트랩. 제재소·채석장과 완전히 동일한 ProductionBuilding 패턴 재사용.
 - **파일**: `src/types/building.ts`, `src/config/buildings.config.ts`, `src/entities/building.ts`, `src/entities/production-building.ts`, `src/systems/building-system.ts`, `src/ui/build-menu.ts`
 - **관련**: `docs/GDD.md` §6.4, §20 (Phase 2 범위), `docs/OPEN_ISSUES.md`
-- **주의 (후속 검토 필요)**: `ResourceBar`는 현재 W/S만 표시 → IRON/GOLD 생산을 플레이어가 HUD에서 확인 불가. 별도 작업 필요.
+- **주의**: 같은 날 다른 worktree(`claude/intelligent-matsumoto-a11704`)에서 Phase 2 step 1과 ResourceBar 4종 일반화가 동시 진행됨. 머지 시 step 1의 RESOURCE_ICONS 공통화 + BuildMenu 비용 라벨 일반화 채택. 본 step 2 직후 임시로 추가했던 [FIX] ResourceBar IRON/GOLD는 머지 결과로 흡수되어 항목 생략.
+
+### [FEATURE] 철(IRON)·금(GOLD) 자원 스폰·채집·HUD (Phase 2 스텝 1)
+- **무엇**:
+  - `RESOURCE_CONFIG.spawnWeights` 도입 (W:50 / S:30 / I:15 / G:5). 기존 미사용 `woodStoneRatio` 제거.
+  - `TileMap.spawnResources()` 가 4종 가중치 random으로 스폰 (기존 i%2 → `pickResourceType()` weighted).
+  - 채집은 기존 로직 그대로 동작 — `RESOURCE_CONFIG.collectTimeMs/collectAmount` 가 이미 IRON(2초/1개)·GOLD(3초/1개) 수치 보유 (GDD §5.2).
+  - `ResourceBar` 에 IRON/GOLD 표시 추가 (W·S·I·G 4종 모두 노출).
+- **왜**: Phase 2 시작. 4계열 테크 체계로 가기 위한 첫 단계 — 철·금 자원 인벤토리·HUD가 먼저 살아있어야 후속 건물·테크 작업 가능.
+- **파일**:
+  - `src/config/resource.config.ts:31-49` (spawnWeights 도입, woodStoneRatio 제거)
+  - `src/systems/tile-map.ts:96-148` (spawnResources + pickResourceType)
+  - `src/ui/resource-bar.ts:36-41` (shown 배열 4종)
+- **관련**: GDD §5.1·§5.2 (자원 4종·채집 속도). 바이오옴(산악·사막) 시스템은 Phase 2 후속 — 일단 맵 전체 균일 가중치로 스폰.
+- **검증**: `npm run typecheck` 통과.
+
+### [REFACTOR] UI exclusion zone 매직넘버를 GAME_CONFIG.ui로 통일
+- **무엇**: 월드 클릭이 HUD 위에서 발화 안 되게 막는 좌표(상단 48 / 하단 140)를 `GAME_CONFIG.ui.topZoneHeight`·`bottomZoneHeight` 로 끌어올림. ResourceSystem·PlacementMode 두 곳에서 같은 상수 import.
+- **왜**: PhaseTimer / BuildMenu / ReadyButton 높이를 변경할 때 두 시스템 동시 수정 필요한 DRY 위반. 한 곳만 바꾸면 동기화되도록.
+- **파일**: `src/config/game.config.ts` (ui zone 신규), `src/systems/resource-system.ts:130-133`, `src/systems/placement-mode.ts:95-96`
+- **관련**: 코드 감사 발견. 동작 변화 없음 (값 동일). typecheck 통과.
+
+### [REFACTOR] BuildMenu 비용 라벨을 4종 자원 일반화
+- **무엇**: `build-menu.ts`의 비용 문자열 생성을 W/S 하드코딩에서 `Object.entries(cost)` 루프로 교체. 공통 `RESOURCE_ICONS` 매핑 사용.
+- **왜**: Phase 2에서 IRON/GOLD를 비용으로 쓰는 건물(공장·마법연구소 등) 추가 시 UI에서 비용이 사일런트 누락되는 버그 회피. 자원 4종 모두 자동 반영.
+- **파일**: `src/ui/build-menu.ts:88-94`
+- **관련**: 코드 감사 발견. 현재 W/S만 쓰는 건물 4종은 표시 결과 동일 (회귀 X). typecheck 통과.
+
+### [REFACTOR] 몬스터 drop 컨벤션을 ResourceType enum 키로 통일
+- **무엇**:
+  - `MONSTER_CONFIG.WOLF.drop` 키를 소문자 `wood`/`stone` → `ResourceType.WOOD`/`ResourceType.STONE`로 교체. 타입은 `Partial<Record<ResourceType, number>>`.
+  - `monster.ts` `applyDrop()` 을 W/S 하드코딩 → `Object.entries(drop)` 4종 루프로 일반화.
+  - 공통 `RESOURCE_ICONS: Record<ResourceType, string>` 을 `resource.config.ts`에 신규 export. 드롭 텍스트·HUD 라벨·(다음 단계) 비용 라벨이 공유.
+  - `resource-bar.ts`의 로컬 `ICONS` 제거 → 공통 `RESOURCE_ICONS` import.
+- **왜**: Phase 2 IRON/GOLD 드롭 몬스터 추가 시 config·entity 두 곳을 모두 손대지 않게. 매직 키 컨벤션도 ResourceType enum과 일치.
+- **파일**: `src/config/monsters.config.ts`, `src/config/resource.config.ts`, `src/entities/monster.ts:248-258`, `src/ui/resource-bar.ts`
+- **관련**: 코드 감사 발견. typecheck 통과.
+
+### [REMOVE] dead code — TargetRef 타입 / currentTarget 필드 제거
+- **무엇**:
+  - `TargetRef` union type 제거 (types/monster.ts)
+  - `MonsterState.currentTarget` 필드 제거
+  - `TurretState.currentTarget` 필드 제거
+  - Monster·Turret 생성자에서 `currentTarget: null` 라인 제거
+- **왜**: state에 선언되었으나 construction 시 null로만 세팅되고 평생 갱신·읽기 X. 실제 타깃 추적은 entity의 private `this.target` 필드에서 처리. → 죽은 타입.
+- **파일**: `src/types/monster.ts`, `src/types/building.ts`, `src/entities/monster.ts:80`, `src/entities/turret.ts:42`
+- **관련**: 코드 감사 발견. typecheck 통과.
 
 ---
 
