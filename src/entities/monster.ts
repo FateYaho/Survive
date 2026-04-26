@@ -77,7 +77,6 @@ export class Monster {
       maxHp: cfg.hp,
       movePattern: cfg.movePattern as MovePattern,
       attackPattern: cfg.attackPattern as AttackPattern,
-      currentTarget: null,
       moveSpeed: cfg.moveSpeed,
       attackPower: cfg.attackPower,
       attackCooldownMs: cfg.attackCooldownMs,

@@ -34,8 +34,18 @@ export const RESOURCE_CONFIG = {
    */
   spawnDensity: 0.15,
 
-  /** 나무 : 돌 비율 (재설계: 나무 65% — 나무 더 많게) */
-  woodStoneRatio: 0.65,
+  /**
+   * 자원 종류별 스폰 가중치 (weighted random)
+   * 합 100 가독성, 실제론 가중치 비율만 의미.
+   * Phase 1 (바이오옴 X): 나무·돌 흔하고, 철 가끔, 금 드물게.
+   * Phase 2+ 산악·사막 바이오옴 도입 시 영역별 가중치로 분리 예정.
+   */
+  spawnWeights: {
+    [ResourceType.WOOD]: 50,
+    [ResourceType.STONE]: 30,
+    [ResourceType.IRON]: 15,
+    [ResourceType.GOLD]: 5,
+  } as Record<ResourceType, number>,
 
   /** 자원 타일 간 최소 간격 (뭉치지 않게) */
   minSpawnGapTiles: 2,

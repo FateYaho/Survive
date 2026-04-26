@@ -26,6 +26,34 @@
 
 ---
 
+## 2026-04-26
+
+### [REMOVE] dead code — TargetRef 타입 / currentTarget 필드 제거
+- **무엇**:
+  - `TargetRef` union type 제거 (types/monster.ts)
+  - `MonsterState.currentTarget` 필드 제거
+  - `TurretState.currentTarget` 필드 제거
+  - Monster·Turret 생성자에서 `currentTarget: null` 라인 제거
+- **왜**: state에 선언되었으나 construction 시 null로만 세팅되고 평생 갱신·읽기 X. 실제 타깃 추적은 entity의 private `this.target` 필드에서 처리. → 죽은 타입.
+- **파일**: `src/types/monster.ts`, `src/types/building.ts`, `src/entities/monster.ts:80`, `src/entities/turret.ts:42`
+- **관련**: 코드 감사 발견. typecheck 통과.
+
+### [FEATURE] 철(IRON)·금(GOLD) 자원 스폰·채집·HUD (Phase 2 스텝 1)
+- **무엇**:
+  - `RESOURCE_CONFIG.spawnWeights` 도입 (W:50 / S:30 / I:15 / G:5). 기존 미사용 `woodStoneRatio` 제거.
+  - `TileMap.spawnResources()` 가 4종 가중치 random으로 스폰 (기존 i%2 → `pickResourceType()` weighted).
+  - 채집은 기존 로직 그대로 동작 — `RESOURCE_CONFIG.collectTimeMs/collectAmount` 가 이미 IRON(2초/1개)·GOLD(3초/1개) 수치 보유 (GDD §5.2).
+  - `ResourceBar` 에 IRON/GOLD 표시 추가 (W·S·I·G 4종 모두 노출).
+- **왜**: Phase 2 시작. 4계열 테크 체계로 가기 위한 첫 단계 — 철·금 자원 인벤토리·HUD가 먼저 살아있어야 후속 건물·테크 작업 가능.
+- **파일**:
+  - `src/config/resource.config.ts:31-49` (spawnWeights 도입, woodStoneRatio 제거)
+  - `src/systems/tile-map.ts:96-148` (spawnResources + pickResourceType)
+  - `src/ui/resource-bar.ts:36-41` (shown 배열 4종)
+- **관련**: GDD §5.1·§5.2 (자원 4종·채집 속도). 바이오옴(산악·사막) 시스템은 Phase 2 후속 — 일단 맵 전체 균일 가중치로 스폰.
+- **검증**: `npm run typecheck` 통과.
+
+---
+
 ## 2026-04-25
 
 ### [BUG FIX] 마지막 자원 채집 시 인벤토리 NaN

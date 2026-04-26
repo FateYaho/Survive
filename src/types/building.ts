@@ -6,8 +6,6 @@
  * - IMPL_PLAN §2.6
  */
 
-import type { TargetRef } from './monster';
-
 /** 건물 타입 — Phase 1 MVP 범위 (2026-04-25 재설계) */
 export enum BuildingType {
   /** 벽 — 방어 장애물 */
@@ -35,8 +33,6 @@ export interface BuildingState {
  * GDD §10.4 "방어 터렛 → 몬스터" 타깃팅 규칙 준수
  */
 export interface TurretState extends BuildingState {
-  /** 현재 고정된 타깃 (null이면 대기) */
-  currentTarget: TargetRef | null;
   /** 공격 사거리 (픽셀) */
   attackRange: number;
   attackPower: number;

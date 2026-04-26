@@ -32,7 +32,12 @@ export class ResourceBar {
     this.scene = scene;
     this.getInventory = getInventory;
 
-    const shown: ResourceType[] = [ResourceType.WOOD, ResourceType.STONE];
+    const shown: ResourceType[] = [
+      ResourceType.WOOD,
+      ResourceType.STONE,
+      ResourceType.IRON,
+      ResourceType.GOLD,
+    ];
     const y = 36;
     let x = 8;
     for (const type of shown) {

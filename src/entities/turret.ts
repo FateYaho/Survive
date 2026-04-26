@@ -40,7 +40,6 @@ export class Turret extends Building {
 
     const spec = BUILDING_CONFIG[BuildingType.BASIC_TURRET];
     this.turretState = {
-      currentTarget: null,
       attackRange: spec.attackRange,
       attackPower: spec.attackPower,
       attackCooldownMs: spec.attackCooldownMs,

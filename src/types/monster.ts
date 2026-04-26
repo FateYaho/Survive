@@ -32,16 +32,6 @@ export enum AttackPattern {
   EXPLOSIVE = 'EXPLOSIVE',
 }
 
-/**
- * 몬스터·터렛 타깃 참조 — GDD §10.4 3주체 타깃팅 규칙
- * kind 필드로 판별
- */
-export type TargetRef =
-  | { kind: 'player' }
-  | { kind: 'core' }
-  | { kind: 'building'; buildingId: string }
-  | { kind: 'turret'; turretId: string };
-
 export interface MonsterState {
   /** 고유 ID (스폰 시 생성) */
   id: string;
@@ -55,12 +45,6 @@ export interface MonsterState {
 
   movePattern: MovePattern;
   attackPattern: AttackPattern;
-
-  /**
-   * 영토 경계 진입 시 고정된 공격 대상
-   * - 타깃 사망 또는 사거리 이탈 시에만 재탐색 (매 프레임 X)
-   */
-  currentTarget: TargetRef | null;
 
   moveSpeed: number; // 픽셀/초
   attackPower: number;
