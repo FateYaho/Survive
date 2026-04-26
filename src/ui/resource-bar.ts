@@ -11,14 +11,8 @@
  */
 
 import Phaser from 'phaser';
+import { RESOURCE_ICONS } from '../config';
 import { ResourceType, type Inventory } from '../types';
-
-const ICONS: Record<ResourceType, string> = {
-  [ResourceType.WOOD]: 'W',
-  [ResourceType.STONE]: 'S',
-  [ResourceType.IRON]: 'I',
-  [ResourceType.GOLD]: 'G',
-};
 
 const LABEL_COLOR = '#ffffff';
 const FLASH_COLOR = '#ff5555';
@@ -65,7 +59,7 @@ export class ResourceBar {
 
   private format(type: ResourceType): string {
     const amt = this.getInventory()[type];
-    return `${ICONS[type]} ${amt}`;
+    return `${RESOURCE_ICONS[type]} ${amt}`;
   }
 
   private refreshAll(): void {

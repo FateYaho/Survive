@@ -9,7 +9,7 @@
  * // TUNE_AFTER_PHASE1
  */
 
-import { MonsterType, MovePattern, AttackPattern } from '../types';
+import { MonsterType, MovePattern, AttackPattern, ResourceType } from '../types';
 
 export const MONSTER_CONFIG = {
   [MonsterType.WOLF]: {
@@ -24,8 +24,14 @@ export const MONSTER_CONFIG = {
     collisionRadius: 6,
     movePattern: MovePattern.STRAIGHT,
     attackPattern: AttackPattern.MELEE,
-    /** 처치 시 드롭 — Phase 1 기준 초안 // TUNE_AFTER_PHASE1 */
-    drop: { wood: 2, stone: 1 },
+    /**
+     * 처치 시 드롭 — Phase 1 기준 초안 // TUNE_AFTER_PHASE1
+     * Phase 2+ 몬스터는 IRON/GOLD 키 추가 가능 (Partial<Record<ResourceType, number>>)
+     */
+    drop: {
+      [ResourceType.WOOD]: 2,
+      [ResourceType.STONE]: 1,
+    } as Partial<Record<ResourceType, number>>,
   },
   // BOAR / SHADOW / GHOST는 Phase 2+에서 추가
 

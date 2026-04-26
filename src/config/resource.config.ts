@@ -8,6 +8,17 @@
 
 import { ResourceType } from '../types';
 
+/**
+ * 자원 종류별 1글자 아이콘 (HUD·드롭 텍스트·비용 라벨 공통)
+ * Phase 4 Kenney 스프라이트 도입 시 이미지 키로 교체 예정.
+ */
+export const RESOURCE_ICONS: Record<ResourceType, string> = {
+  [ResourceType.WOOD]: 'W',
+  [ResourceType.STONE]: 'S',
+  [ResourceType.IRON]: 'I',
+  [ResourceType.GOLD]: 'G',
+};
+
 export const RESOURCE_CONFIG = {
   /** 1회 채집 소요 시간 (ms) — GDD §5.2 */
   collectTimeMs: {

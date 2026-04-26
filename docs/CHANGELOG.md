@@ -28,6 +28,16 @@
 
 ## 2026-04-26
 
+### [REFACTOR] 몬스터 drop 컨벤션을 ResourceType enum 키로 통일
+- **무엇**:
+  - `MONSTER_CONFIG.WOLF.drop` 키를 소문자 `wood`/`stone` → `ResourceType.WOOD`/`ResourceType.STONE`로 교체. 타입은 `Partial<Record<ResourceType, number>>`.
+  - `monster.ts` `applyDrop()` 을 W/S 하드코딩 → `Object.entries(drop)` 4종 루프로 일반화.
+  - 공통 `RESOURCE_ICONS: Record<ResourceType, string>` 을 `resource.config.ts`에 신규 export. 드롭 텍스트·HUD 라벨·(다음 단계) 비용 라벨이 공유.
+  - `resource-bar.ts`의 로컬 `ICONS` 제거 → 공통 `RESOURCE_ICONS` import.
+- **왜**: Phase 2 IRON/GOLD 드롭 몬스터 추가 시 config·entity 두 곳을 모두 손대지 않게. 매직 키 컨벤션도 ResourceType enum과 일치.
+- **파일**: `src/config/monsters.config.ts`, `src/config/resource.config.ts`, `src/entities/monster.ts:248-258`, `src/ui/resource-bar.ts`
+- **관련**: 코드 감사 발견. typecheck 통과.
+
 ### [REMOVE] dead code — TargetRef 타입 / currentTarget 필드 제거
 - **무엇**:
   - `TargetRef` union type 제거 (types/monster.ts)
