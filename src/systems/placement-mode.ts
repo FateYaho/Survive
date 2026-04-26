@@ -14,7 +14,7 @@
  */
 
 import Phaser from 'phaser';
-import { MAP_CONFIG } from '../config';
+import { GAME_CONFIG, MAP_CONFIG } from '../config';
 import { BuildingType } from '../types';
 import { BUILDING_COLORS } from '../entities/building';
 import type { TileMap } from './tile-map';
@@ -92,8 +92,8 @@ export class PlacementMode {
   private handleClick(p: Phaser.Input.Pointer): void {
     if (!this.activeType) return;
     // UI 상단/하단 영역 클릭은 메뉴·버튼이 처리하므로 무시
-    if (p.y < 48) return;
-    if (p.y > (this.scene.game.canvas.height) - 140) return;
+    if (p.y < GAME_CONFIG.ui.topZoneHeight) return;
+    if (p.y > this.scene.game.canvas.height - GAME_CONFIG.ui.bottomZoneHeight) return;
 
     // 우클릭이면 취소
     if (p.rightButtonDown()) {

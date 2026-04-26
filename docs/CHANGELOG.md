@@ -28,6 +28,12 @@
 
 ## 2026-04-26
 
+### [REFACTOR] UI exclusion zone 매직넘버를 GAME_CONFIG.ui로 통일
+- **무엇**: 월드 클릭이 HUD 위에서 발화 안 되게 막는 좌표(상단 48 / 하단 140)를 `GAME_CONFIG.ui.topZoneHeight`·`bottomZoneHeight` 로 끌어올림. ResourceSystem·PlacementMode 두 곳에서 같은 상수 import.
+- **왜**: PhaseTimer / BuildMenu / ReadyButton 높이를 변경할 때 두 시스템 동시 수정 필요한 DRY 위반. 한 곳만 바꾸면 동기화되도록.
+- **파일**: `src/config/game.config.ts` (ui zone 신규), `src/systems/resource-system.ts:130-133`, `src/systems/placement-mode.ts:95-96`
+- **관련**: 코드 감사 발견. 동작 변화 없음 (값 동일). typecheck 통과.
+
 ### [REFACTOR] BuildMenu 비용 라벨을 4종 자원 일반화
 - **무엇**: `build-menu.ts`의 비용 문자열 생성을 W/S 하드코딩에서 `Object.entries(cost)` 루프로 교체. 공통 `RESOURCE_ICONS` 매핑 사용.
 - **왜**: Phase 2에서 IRON/GOLD를 비용으로 쓰는 건물(공장·마법연구소 등) 추가 시 UI에서 비용이 사일런트 누락되는 버그 회피. 자원 4종 모두 자동 반영.
