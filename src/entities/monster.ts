@@ -30,6 +30,7 @@ import type { TileMap } from '../systems/tile-map';
 import type { BuildingSystem } from '../systems/building-system';
 
 const WOLF_COLOR = 0xff5555;
+const WOLF_SLOW_COLOR = 0x88aaff; // 슬로우 적용 시 시각 피드백 (옅은 청색)
 const WOLF_SIZE = 14;
 const EPS = 0.5;
 
@@ -48,6 +49,11 @@ export class Monster {
   private readonly attackRange: number;
   private target: TargetKind | null = null;
   private destroyed = false;
+  /** 현재 적용된 슬로우 배율 (1 = 정상). 동시 다중 슬로우는 가장 강한 것(낮은 factor) 우선. */
+  private slowFactor: number = 1;
+  private slowExpiresAt: number = 0;
+  /** 데미지 플래시 중인지 (슬로우 색상 덮어쓰기 방지) */
+  private isFlashing: boolean = false;
 
   constructor(
     scene: Phaser.Scene,
@@ -99,6 +105,9 @@ export class Monster {
   update(time: number, delta: number): void {
     if (this.destroyed) return;
 
+    // 슬로우 만료 정리 + 시각 갱신
+    this.refreshSlow(time);
+
     // 1) 타깃 선정 / 재선정
     if (!this.isTargetValid()) {
       this.target = this.pickTarget();
@@ -114,7 +123,7 @@ export class Monster {
     if (dist <= this.attackRange) {
       this.tryAttack(time);
     } else if (dist > EPS) {
-      const step = this.state.moveSpeed * (delta / 1000);
+      const step = this.state.moveSpeed * this.slowFactor * (delta / 1000);
       const move = Math.min(step, dist);
       const nx = this.state.pixelX + (dx / dist) * move;
       const ny = this.state.pixelY + (dy / dist) * move;
@@ -221,13 +230,45 @@ export class Monster {
     if (this.destroyed) return;
     this.state.hp -= amount;
 
-    // 빨간 플래시
+    // 흰 플래시 → 끝나면 슬로우 상태에 맞게 베이스 색상 복원
+    this.isFlashing = true;
     this.sprite.setFillStyle(0xffffff);
     this.scene.time.delayedCall(COMBAT_CONFIG.damageFlashMs, () => {
-      if (!this.destroyed) this.sprite.setFillStyle(WOLF_COLOR);
+      this.isFlashing = false;
+      if (!this.destroyed) this.applyBaseColor();
     });
 
     if (this.state.hp <= 0) this.destroy();
+  }
+
+  /**
+   * 슬로우 적용 — 더 강한 슬로우(낮은 factor) 우선, 만료시각은 항상 갱신.
+   * Phase 2 step 3에서 도입 (특수 터렛 — 발리스타·회전 가시).
+   */
+  applySlow(slow: { factor: number; durationMs: number }, currentTime: number): void {
+    if (this.destroyed) return;
+    const expired = currentTime >= this.slowExpiresAt;
+    if (expired || slow.factor < this.slowFactor) {
+      this.slowFactor = slow.factor;
+    }
+    const newExpiry = currentTime + slow.durationMs;
+    if (newExpiry > this.slowExpiresAt) {
+      this.slowExpiresAt = newExpiry;
+    }
+    if (!this.isFlashing) this.applyBaseColor();
+  }
+
+  private refreshSlow(time: number): void {
+    if (this.slowFactor !== 1 && time >= this.slowExpiresAt) {
+      this.slowFactor = 1;
+      this.slowExpiresAt = 0;
+      if (!this.isFlashing) this.applyBaseColor();
+    }
+  }
+
+  private applyBaseColor(): void {
+    const slowed = this.slowFactor < 1;
+    this.sprite.setFillStyle(slowed ? WOLF_SLOW_COLOR : WOLF_COLOR);
   }
 
   destroy(): void {

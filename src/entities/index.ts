@@ -9,3 +9,6 @@ export * from './monster';
 export * from './building';
 export * from './turret';
 export * from './production-building';
+export * from './aoe-turret';
+export * from './magic-orb';
+export * from './rotating-spike-turret';

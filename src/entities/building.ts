@@ -20,6 +20,12 @@ export const BUILDING_COLORS: Record<BuildingType, number> = {
   [BuildingType.BASIC_TURRET]: 0xff8800,
   [BuildingType.LUMBER_MILL]: 0x8b5a2b, // 갈색 (나무)
   [BuildingType.QUARRY]: 0xbbbbbb, // 밝은 회색 (돌)
+  [BuildingType.FORGE]: 0x6677aa, // 청회색 (철)
+  [BuildingType.FACTORY]: 0xddbb33, // 황금색 (금)
+  [BuildingType.STONE_BALLISTA]: 0x778877, // 어두운 녹회색 (돌+목재)
+  [BuildingType.MACHINE_GUN_TURRET]: 0x444466, // 진한 청회색 (기계)
+  [BuildingType.MAGIC_ORB]: 0xaa66ff, // 보라 (마법)
+  [BuildingType.ROTATING_SPIKE_TURRET]: 0xcc4444, // 붉은 가시
 };
 
 let nextBuildingId = 1;

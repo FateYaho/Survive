@@ -20,7 +20,11 @@ import type { Player } from './player';
 const PULSE_SCALE = 1.12;
 const PULSE_MS = 120;
 
-type ProdType = BuildingType.LUMBER_MILL | BuildingType.QUARRY;
+type ProdType =
+  | BuildingType.LUMBER_MILL
+  | BuildingType.QUARRY
+  | BuildingType.FORGE
+  | BuildingType.FACTORY;
 
 export class ProductionBuilding extends Building {
   private readonly player: Player;

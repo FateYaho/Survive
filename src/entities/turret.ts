@@ -1,5 +1,5 @@
 /**
- * Turret — 자동 사격 방어 터렛
+ * Turret — 자동 사격 방어 터렛 (단일 타깃 hitScan)
  *
  * 관련 문서:
  * - GDD §6.7 (방어 시설), §10.4 (타깃팅: 방어 터렛 → 몬스터)
@@ -8,7 +8,11 @@
  * 동작:
  * - 사거리 내 가장 가까운 몬스터를 **고정 타깃**으로 잠금
  * - 타깃 사거리 이탈 or 사망 시 재탐색
- * - 쿨다운(800ms) 충족 시 hitScan 공격 + 주황 라인
+ * - 쿨다운 충족 시 hitScan 공격 + 라인 플래시
+ *
+ * 사용 타입:
+ * - `BuildingType.BASIC_TURRET` (기본)
+ * - `BuildingType.MACHINE_GUN_TURRET` (Phase 2 step 3 — 동일 로직, 짧은 쿨다운 + 다른 색)
  */
 
 import Phaser from 'phaser';
@@ -18,11 +22,21 @@ import { Building } from './building';
 import type { Monster } from './monster';
 import type { WaveSpawner } from '../systems/wave-spawner';
 
-const SHOT_LINE_COLOR = 0xffaa33;
 const SHOT_LINE_MS = 80;
+
+const SHOT_LINE_COLOR: Record<
+  BuildingType.BASIC_TURRET | BuildingType.MACHINE_GUN_TURRET,
+  number
+> = {
+  [BuildingType.BASIC_TURRET]: 0xffaa33,
+  [BuildingType.MACHINE_GUN_TURRET]: 0x66ccff,
+};
+
+type TurretLike = BuildingType.BASIC_TURRET | BuildingType.MACHINE_GUN_TURRET;
 
 export class Turret extends Building {
   private readonly waves: WaveSpawner;
+  private readonly turretType: TurretLike;
   private readonly turretState: Omit<TurretState, keyof import('../types').BuildingState>;
   private target: Monster | null = null;
   private readonly shotLine: Phaser.GameObjects.Graphics;
@@ -33,12 +47,14 @@ export class Turret extends Building {
     tileX: number,
     tileY: number,
     pixelX: number,
-    pixelY: number
+    pixelY: number,
+    turretType: TurretLike = BuildingType.BASIC_TURRET
   ) {
-    super(scene, BuildingType.BASIC_TURRET, tileX, tileY, pixelX, pixelY);
+    super(scene, turretType, tileX, tileY, pixelX, pixelY);
     this.waves = waves;
+    this.turretType = turretType;
 
-    const spec = BUILDING_CONFIG[BuildingType.BASIC_TURRET];
+    const spec = BUILDING_CONFIG[turretType];
     this.turretState = {
       currentTarget: null,
       attackRange: spec.attackRange,
@@ -109,7 +125,7 @@ export class Turret extends Building {
     const p = this.getPosition();
     const mp = m.getPosition();
     this.shotLine.clear();
-    this.shotLine.lineStyle(2, SHOT_LINE_COLOR, 1);
+    this.shotLine.lineStyle(2, SHOT_LINE_COLOR[this.turretType], 1);
     this.shotLine.lineBetween(p.pixelX, p.pixelY, mp.pixelX, mp.pixelY);
     this.scene.time.delayedCall(SHOT_LINE_MS, () => this.shotLine.clear());
   }

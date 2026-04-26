@@ -23,10 +23,16 @@ import {
 import { Building } from '../entities/building';
 import { Turret } from '../entities/turret';
 import { ProductionBuilding } from '../entities/production-building';
+import { AoeTurret } from '../entities/aoe-turret';
+import { MagicOrb } from '../entities/magic-orb';
+import { RotatingSpikeTurret } from '../entities/rotating-spike-turret';
 import type { TileMap } from './tile-map';
 import type { Player } from '../entities/player';
 import type { WaveSpawner } from './wave-spawner';
 import type { PhaseManager } from './phase-manager';
+
+/** 매 프레임 update 라우팅 대상 — 모든 공격형 터렛 (단일/AoE/멀티/빔) */
+type CombatTurret = Turret | AoeTurret | MagicOrb | RotatingSpikeTurret;
 
 export interface PlacementCheck {
   ok: boolean;
@@ -40,7 +46,7 @@ export class BuildingSystem {
   private readonly waves: WaveSpawner;
   private readonly phase: PhaseManager;
   private readonly buildings: Map<string, Building> = new Map();
-  private readonly turrets: Set<Turret> = new Set();
+  private readonly combatTurrets: Set<CombatTurret> = new Set();
   private readonly productionBuildings: Set<ProductionBuilding> = new Set();
   private readonly typeCounts: Map<BuildingType, number> = new Map();
 
@@ -64,7 +70,7 @@ export class BuildingSystem {
   }
 
   update(time: number, delta: number): void {
-    for (const t of this.turrets) {
+    for (const t of this.combatTurrets) {
       if (t.isAlive()) t.update(time, delta);
     }
     for (const pb of this.productionBuildings) {
@@ -120,7 +126,14 @@ export class BuildingSystem {
 
     const id = building.getState().id;
     this.buildings.set(id, building);
-    if (building instanceof Turret) this.turrets.add(building);
+    if (
+      building instanceof Turret ||
+      building instanceof AoeTurret ||
+      building instanceof MagicOrb ||
+      building instanceof RotatingSpikeTurret
+    ) {
+      this.combatTurrets.add(building);
+    }
     if (building instanceof ProductionBuilding) this.productionBuildings.add(building);
 
     this.typeCounts.set(type, (this.typeCounts.get(type) ?? 0) + 1);
@@ -141,9 +154,18 @@ export class BuildingSystem {
   ): Building {
     switch (type) {
       case BuildingType.BASIC_TURRET:
-        return new Turret(this.scene, this.waves, tileX, tileY, x, y);
+      case BuildingType.MACHINE_GUN_TURRET:
+        return new Turret(this.scene, this.waves, tileX, tileY, x, y, type);
+      case BuildingType.STONE_BALLISTA:
+        return new AoeTurret(this.scene, this.waves, tileX, tileY, x, y);
+      case BuildingType.MAGIC_ORB:
+        return new MagicOrb(this.scene, this.waves, tileX, tileY, x, y);
+      case BuildingType.ROTATING_SPIKE_TURRET:
+        return new RotatingSpikeTurret(this.scene, this.waves, tileX, tileY, x, y);
       case BuildingType.LUMBER_MILL:
       case BuildingType.QUARRY:
+      case BuildingType.FORGE:
+      case BuildingType.FACTORY:
         return new ProductionBuilding(
           this.scene,
           type,
@@ -189,7 +211,14 @@ export class BuildingSystem {
     const type = b.getState().type;
     this.typeCounts.set(type, Math.max(0, (this.typeCounts.get(type) ?? 0) - 1));
     this.buildings.delete(buildingId);
-    if (b instanceof Turret) this.turrets.delete(b);
+    if (
+      b instanceof Turret ||
+      b instanceof AoeTurret ||
+      b instanceof MagicOrb ||
+      b instanceof RotatingSpikeTurret
+    ) {
+      this.combatTurrets.delete(b);
+    }
     if (b instanceof ProductionBuilding) this.productionBuildings.delete(b);
   }
 }

@@ -12,8 +12,8 @@ export const PHASE_CONFIG = {
    * Phase 1 MVP는 5사이클이라 early만 실제 사용
    */
   dayDurationMs: {
-    /** 1~3 사이클: 1.5분 */
-    early: 90_000,
+    /** 1~3 사이클: 1분 (Patch B 옵션 G — 90s → 60s 컷) */
+    early: 60_000,
     /** 4~9 사이클: 2.5분 */
     mid: 150_000,
     /** 10~15 사이클: 3분 */

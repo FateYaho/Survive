@@ -3,7 +3,7 @@
 > **목적**: "지금 코드가 어떻게 생겼나" 한눈에. 새 시스템·파일·패턴 추가될 때마다 업데이트.
 > **이 문서는 항상 *현재 상태*만 기술**. 변경 이력은 [CHANGELOG.md](CHANGELOG.md), 결정 근거는 [adr/](adr/) 참조.
 >
-> **마지막 업데이트**: 2026-04-25
+> **마지막 업데이트**: 2026-04-27
 
 ---
 
@@ -91,10 +91,13 @@ PlacementMode (TileMap, BuildingSystem)
 |--------|------|------|
 | `Player` | WASD 이동·HP·인벤토리·다운/부활·시야 자동 공개 | TileMap |
 | `Core` | 중앙 수호 대상. HP 500. 피격 시 화면 흔들림 + core:destroyed | TileMap |
-| `Monster` | WOLF만 (Phase 1). 타깃 락킹(player/core) + 근접 공격 + 벽 공격 | Player, Core, TileMap, BuildingSystem (옵션) |
+| `Monster` | WOLF만 (Phase 1). 타깃 락킹(player/core) + 근접 공격 + 벽 공격 + 슬로우 상태 (Phase 2 step 3) | Player, Core, TileMap, BuildingSystem (옵션) |
 | `Building` | 모든 건물 베이스. HP 바 자동 표시 + takeDamage + destroy 이벤트 | (Phaser scene만) |
-| `Turret` | extends Building. 사거리 내 가장 가까운 몬스터 락킹 + 자동 사격 | WaveSpawner |
-| `ProductionBuilding` | extends Building. DAY 중에만 주기적 자원 생산 (LumberMill, Quarry) | Player |
+| `Turret` | extends Building. 단일 타깃 hitScan. BASIC_TURRET·MACHINE_GUN_TURRET 공유 (turretType 파라미터) | WaveSpawner |
+| `AoeTurret` | extends Building. 단일 타깃 명중 시 AoE 광역 피해 + 슬로우 (STONE_BALLISTA) | WaveSpawner |
+| `MagicOrb` | extends Building. 사거리 내 모든 몬스터 동시 타격 | WaveSpawner |
+| `RotatingSpikeTurret` | extends Building. 시계방향 회전 빔, line-thickness 적중 → 지속 피해 + 슬로우 | WaveSpawner |
+| `ProductionBuilding` | extends Building. DAY 중에만 주기적 자원 생산 (LumberMill, Quarry, Forge, Factory) | Player |
 
 ---
 
@@ -121,7 +124,7 @@ PlacementMode (TileMap, BuildingSystem)
 | `PhaseTimer` | 상단 중앙 | "DAY 1 — 1:30" 페이즈+잔여시간 |
 | `ReadyButton` | 하단 중앙 (BUILD만) | 클릭 시 NIGHT 전환 |
 | `DevSkipButton` | 상단 우측 | 페이즈 즉시 스킵 (개발용) |
-| `BuildMenu` | 하단 (DAY+BUILD) | 4 카드: 벽 / 터렛 / 제재소 / 채석장 |
+| `BuildMenu` | 하단 (DAY+BUILD) | 10 카드: 벽 / 터렛 / 기관총 / 발리스타 / 마법구슬 / 회전가시 / 제재소 / 채석장 / 대장간 / 공장 |
 
 ---
 
@@ -186,6 +189,14 @@ PlacementMode (TileMap, BuildingSystem)
 ### 6. 자원 채집 시 type 캡처 필수 (버그 회피)
 - `decrementResource()`가 자원 소진 시 `tile.resource = null`로 만듦
 - 호출 전에 타입 변수에 저장 후 `addResource()`에 전달해야 NaN 안 됨
+
+### 7. 몬스터 슬로우 시스템 (Phase 2 step 3 도입)
+- `Monster.applySlow({factor, durationMs}, currentTime)` 호출로 적용
+- 강도(factor)가 더 강한 것(낮은 값)이 우선, 만료시각(`slowExpiresAt`)은 항상 max-갱신
+- 매 update에서 만료 시 자동 해제 (`refreshSlow`)
+- 이동 계산: `step = moveSpeed * slowFactor * (delta/1000)`
+- 시각: 슬로우 중엔 옅은 청색(`WOLF_SLOW_COLOR`), 데미지 플래시(흰색)와 충돌 시 플래시 우선 (`isFlashing` 가드)
+- 호출자: `AoeTurret` (광역), `RotatingSpikeTurret` (빔 적중)
 
 ---
 

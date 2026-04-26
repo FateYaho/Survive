@@ -23,9 +23,11 @@ interface Card {
   rect: { left: number; right: number; top: number; bottom: number };
 }
 
-const CARD_W = 130;
+// Phase 2 step 3: 카드 10개 한 줄 배치 위해 폭 축소 (130 → 110, gap 10 → 6)
+// 총 폭 = 10*110 + 9*6 = 1154 (캔버스 1280 ≤ OK)
+const CARD_W = 110;
 const CARD_H = 72;
-const CARD_GAP = 10;
+const CARD_GAP = 6;
 const BOTTOM_MARGIN = 110;
 
 const LABELS: Record<BuildingType, string> = {
@@ -33,13 +35,25 @@ const LABELS: Record<BuildingType, string> = {
   [BuildingType.BASIC_TURRET]: '터렛',
   [BuildingType.LUMBER_MILL]: '제재소',
   [BuildingType.QUARRY]: '채석장',
+  [BuildingType.FORGE]: '대장간',
+  [BuildingType.FACTORY]: '공장',
+  [BuildingType.STONE_BALLISTA]: '발리스타',
+  [BuildingType.MACHINE_GUN_TURRET]: '기관총',
+  [BuildingType.MAGIC_ORB]: '마법구슬',
+  [BuildingType.ROTATING_SPIKE_TURRET]: '회전가시',
 };
 
 const ORDER: BuildingType[] = [
   BuildingType.WALL,
   BuildingType.BASIC_TURRET,
+  BuildingType.MACHINE_GUN_TURRET,
+  BuildingType.STONE_BALLISTA,
+  BuildingType.MAGIC_ORB,
+  BuildingType.ROTATING_SPIKE_TURRET,
   BuildingType.LUMBER_MILL,
   BuildingType.QUARRY,
+  BuildingType.FORGE,
+  BuildingType.FACTORY,
 ];
 
 export class BuildMenu {
@@ -89,6 +103,8 @@ export class BuildMenu {
       const costStr = [
         cost[ResourceType.WOOD] ? `W ${cost[ResourceType.WOOD]}` : null,
         cost[ResourceType.STONE] ? `S ${cost[ResourceType.STONE]}` : null,
+        cost[ResourceType.IRON] ? `I ${cost[ResourceType.IRON]}` : null,
+        cost[ResourceType.GOLD] ? `G ${cost[ResourceType.GOLD]}` : null,
       ]
         .filter(Boolean)
         .join('  ');

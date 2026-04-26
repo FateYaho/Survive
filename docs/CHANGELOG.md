@@ -26,6 +26,66 @@
 
 ---
 
+## 2026-04-27
+
+### [BALANCE] Patch B — 옵션 E+G 적용 (생산 효율 + DAY 시간 컷)
+- **무엇**:
+  - `LUMBER_MILL.production.intervalMs`: 5000 → **8000** (사이클당 36W → 22W)
+  - `QUARRY.production.intervalMs`: 8000 → **12000** (사이클당 22S → 15S)
+  - `PHASE_CONFIG.dayDurationMs.early`: 90_000 → **60_000** (1~3사이클 DAY 1.5분 → 1분)
+- **왜**: 직전 커밋 시점부터 BALANCE_LOG.md에 "Patch B 예정"으로 정리되어 있었으나 미적용 상태로 Phase 2 step 2/3 진행 → 새 터렛 6종 추가 후 자원 풍족 가속 우려. CLAUDE.md "다음 컷 후보: E+G" 지시대로 적용.
+- **파일**: `src/config/buildings.config.ts`, `src/config/time.config.ts`
+- **관련**: `docs/BALANCE_LOG.md` Patch B, `docs/BALANCE_CALC.md` §6 옵션 E/G, CLAUDE.md:21
+- **주의**: mid(4~9사이클) 150s는 그대로. 옵션 G가 명시한 건 early만이라 그렇게 적용. 후속 플레이 테스트 필요.
+
+### [FEATURE] Phase 2 step 3 — 특수 터렛 4종 + 슬로우 시스템
+- **무엇**:
+  - `BuildingType` enum 4종 추가: `STONE_BALLISTA`, `MACHINE_GUN_TURRET`, `MAGIC_ORB`, `ROTATING_SPIKE_TURRET`. 새 `SlowEffect` 인터페이스도 export.
+  - `BUILDING_CONFIG` 4종 spec 추가 (모든 수치 — 비용·HP·DPS·AoE반경·슬로우·빔 회전속도 — 전부 config). 새 spec 인터페이스 `AoeTurretSpec`, `MultiHitTurretSpec`, `BeamTurretSpec`.
+    - 돌 발리스타: 40S+20W, hp100, 6dmg/1500ms cd, AoE반경60, 슬로우 0.5×2s.
+    - 기관총: 40I+20S, hp80, 5dmg/267ms cd (기본 터렛 800ms의 1/3 → DPS≈18.7).
+    - 마법 구슬: 20G+30W, hp60, 4dmg/1500ms cd, 사거리 내 전체 동시 타격.
+    - 회전 가시: 30S+30I, hp120, 빔 반경80·두께16, 회전 π/2 rad/s (4초당 1회전), 10dps + 슬로우 0.5×1.5s.
+  - `Monster.applySlow()` 메서드 + 슬로우 상태 트래킹 (slowFactor, slowExpiresAt). 만료시각은 max-갱신, 강도는 더 강한 것(낮은 factor) 우선. 적용 중 옅은 청색 틴트(WOLF_SLOW_COLOR).
+  - `Turret` 클래스 리팩터: `turretType` 파라미터 받아 BASIC_TURRET·MACHINE_GUN_TURRET 공유. shotLine 색상도 타입별 차등.
+  - 신규 엔티티 클래스 3종: `AoeTurret`, `MagicOrb`, `RotatingSpikeTurret`. 각 자체 시각 효과(원형 플래시·펄스·회전 빔) 보유.
+  - `BuildingSystem`: `turrets` Set → `combatTurrets` 로 일반화 (4종 공통). `createBuilding` switch 분기 4 추가.
+  - `BuildMenu`: 카드 6→10개. 폭 130→110, gap 10→6 (10*110+9*6=1154px ≤ 1280).
+- **왜**: Phase 2 — 4계열(나무/돌/철/마법) 차별화된 방어 옵션 도입. 단일·AoE·멀티·빔 4 패턴으로 빌드 다양성 확보.
+- **파일**: `src/types/building.ts`, `src/config/buildings.config.ts`, `src/entities/building.ts`, `src/entities/turret.ts`, `src/entities/monster.ts`, 신규 `src/entities/aoe-turret.ts`·`magic-orb.ts`·`rotating-spike-turret.ts`, `src/entities/index.ts`, `src/systems/building-system.ts`, `src/ui/build-menu.ts`
+- **관련**: `docs/GDD.md` §6.7, §6.3 (계열별 특화), `docs/ARCHITECTURE.md`
+- **주의**:
+  - 돌 발리스타·회전 가시 슬로우는 자동 적용 (별도 토글 X).
+  - 회전 가시는 update 매 프레임 빔 회전 + 적중 판정 → 몬스터·터렛 다수 시 비용 누적 가능. Phase 4 성능 측정 필요.
+  - 회전 가시 빔은 시각만 직선이고 적중 판정도 line-thickness 기반. 너무 멀리 위치한 몬스터는 빔이 통과해도 미적중 가능 (radius 80 이내만).
+
+### [FIX] ResourceBar에 IRON·GOLD 표시 추가
+- **무엇**: `shown` 배열에 `ResourceType.IRON`, `ResourceType.GOLD` 추가 → HUD 4종(W/S/I/G) 표시.
+- **왜**: Phase 2 step 2에서 FORGE/FACTORY가 IRON·GOLD를 생산하지만 HUD가 W/S만 표시해 플레이어가 생산 결과를 볼 수 없는 문제. 어제 [FEATURE] 항목의 후속 검토 사항.
+- **파일**: `src/ui/resource-bar.ts:35`
+- **관련**: 2026-04-26 [FEATURE] Phase 2 step 2
+
+---
+
+## 2026-04-26
+
+### [FEATURE] Phase 2 step 2 — 대장간(FORGE)·공장(FACTORY) 건물 추가
+- **무엇**:
+  - `BuildingType` enum에 `FORGE`, `FACTORY` 추가.
+  - `BUILDING_CONFIG`에 두 건물 추가 — 둘 다 `ProductionSpec`(maxCount=1, hp=150).
+    - FORGE: 30W + 50S → +1 IRON / 10000ms
+    - FACTORY: 50W + 50S + 10 IRON → +1 GOLD / 15000ms (IRON 게이팅으로 FORGE 선건설 강제)
+  - `BUILDING_COLORS`에 청회색(FORGE) / 황금색(FACTORY) 매핑.
+  - `ProductionBuilding`의 `ProdType` 유니온에 두 타입 포함.
+  - `BuildingSystem.createBuilding` switch에 두 case 추가 (LumberMill·Quarry와 동일 분기).
+  - `BuildMenu`에 카드 2장 추가 → 총 6칸 (벽/터렛/제재소/채석장/대장간/공장). 비용 표기에 IRON·GOLD 표시 추가.
+- **왜**: Phase 2 진입 — 철·금 경제 부트스트랩. 제재소·채석장과 완전히 동일한 ProductionBuilding 패턴 재사용.
+- **파일**: `src/types/building.ts`, `src/config/buildings.config.ts`, `src/entities/building.ts`, `src/entities/production-building.ts`, `src/systems/building-system.ts`, `src/ui/build-menu.ts`
+- **관련**: `docs/GDD.md` §6.4, §20 (Phase 2 범위), `docs/OPEN_ISSUES.md`
+- **주의 (후속 검토 필요)**: `ResourceBar`는 현재 W/S만 표시 → IRON/GOLD 생산을 플레이어가 HUD에서 확인 불가. 별도 작업 필요.
+
+---
+
 ## 2026-04-25
 
 ### [BUG FIX] 마지막 자원 채집 시 인벤토리 NaN
