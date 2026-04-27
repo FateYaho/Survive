@@ -17,6 +17,8 @@
 | [0001](0001-phase-order.md) | 페이즈 순서 변경 (DAY → BUILD → NIGHT) | 2026-04-25 | 적용됨 |
 | [0002](0002-vision-vs-expand-to-collect.md) | 시야 시스템 도입 + 채집 조건 완화 | 2026-04-25 | 적용됨 |
 | [0003-economy-tier-scaling.md](0003-economy-tier-scaling.md) | 확장 비용 계단식 스케일링 | 2026-04-25 | 적용됨 |
+| [0004](0004-meta-progression.md) | 메타 진행 모델 — 롤체식 수평 다양성 | 2026-04-27 | 적용됨 |
+| [0005](0005-biome-system.md) | 바이옴 시스템 — 매 판 자원 분포 절차적 생성 | 2026-04-27 | 적용됨 |
 
 ## 새 ADR 만들 때
 

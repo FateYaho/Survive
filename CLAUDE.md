@@ -14,12 +14,16 @@
 
 ---
 
-## 📅 지금 어디까지 했나 (2026-04-25)
+## 📅 지금 어디까지 했나 (2026-04-27)
 
 - ✅ **Phase 1 MVP 코드 완성** (단계 0~8). 타이틀 → 게임 → 승패 → 재시작 전체 루프 작동.
-- 🔄 **현재 작업**: 밸런스 튜닝. BUILD 2 시점에 터렛 5~7개 살 수 있어 너무 풍족 → 사이클 5도 trivial.
-  - 다음 컷 후보: mill 효율 ↓ + DAY 시간 ↓ ([docs/BALANCE_CALC.md](docs/BALANCE_CALC.md) 옵션 E+G)
-- 📋 **다음**: Kenney 에셋 도입 (Rectangle → Sprite) → Phase 2 설계 (돌/철/마법 계열)
+- ✅ **Phase 2 step 1~3 머지 완료**:
+  - step 1: 4종 자원(나무/돌/철/금) 일반화 + ResourceBar 통일
+  - step 2: 대장간(FORGE) + 공장(FACTORY) 추가 — 철·금 생산 라인
+  - step 3: 특수 터렛 4종(돌 발리스타·기관총·마법 구슬·회전 가시) + 슬로우 시스템
+- ✅ **Patch B 옵션 E+G 적용**: 제재소 5s→8s, 채석장 8s→12s, DAY(early) 90s→60s
+- 🔄 **현재 작업**: Patch B 후속 플레이 테스트 — 터렛 6종 환경에서 자원 흐름·회전 가시 성능 측정.
+- 📋 **다음**: Kenney 에셋 도입 (Rectangle → Sprite) → Phase 2 마무리 / Phase 3 설계
 
 > 자세한 변경 이력은 [docs/CHANGELOG.md](docs/CHANGELOG.md). 결정 근거는 [docs/adr/](docs/adr/).
 
